@@ -1,0 +1,1 @@
+https://github.com/Sandakan/Nora/releases?page=1
