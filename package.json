@@ -1,7 +1,7 @@
 {
-   "name": "nextjs-electron-mp3-player",
+   "name": "vp3",
    "version": "1.0.0",
-   "description": "MP3 player using Next.js and Electron with folder selection",
+   "description": "Vp3 Player",
    "main": "main.js",
    "scripts": {
      "dev": "next dev",
