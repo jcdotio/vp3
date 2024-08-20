@@ -5,6 +5,15 @@ const Index = () => {
   const [currentSong, setCurrentSong] = useState('');
   const audioRef = useRef(null);
 
+  // remove this once you setup styles correctly
+  useEffect(() => {
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    document.body.style.backgroundColor = '#333333';
+    document.body.style.color = '#f5f5f5';
+    document.body.style.fontFamily = 'Ubuntu, sans-serif';
+  }, []);
+
   const handleSelectFiles = async () => {
     console.log('Select files button clicked'); // Debug log
     if (window.electron && window.electron.selectFiles) {
@@ -13,7 +22,7 @@ const Index = () => {
       // Update play queue with selected files
       setPlayQueue([...playQueue, ...filePaths.map(filePath => {
         try {
-          return { url: `local://${filePath}` };
+          return { url: `local://${filePath}`, lastPlayed: null };
         } catch (error) {
           console.error('Invalid file path:', filePath); // Error log
           return null;
@@ -27,6 +36,7 @@ const Index = () => {
   const handlePlay = (url) => {
     console.log('Playing file:', url); // Debug log
     setCurrentSong(url);
+    setPlayQueue(playQueue.map(song => song.url === url ? { ...song, lastPlayed: new Date().toISOString() } : song));
   };
 
   useEffect(() => {
@@ -36,13 +46,45 @@ const Index = () => {
       audioRef.current.play().then(() => {
         console.log('Audio is playing'); // Debug log
       }).catch(error => {
-        console.error('Error playing audio:', error); // Debug log
+        console.error('Error playing audio:', error); // Error log
       });
     }
   }, [currentSong]);
 
+  useEffect(() => {
+    if (window.electron && window.electron.saveState) {
+      console.log('Saving state:', playQueue); // Debug log
+      window.electron.saveState(playQueue);
+    }
+  }, [playQueue]);
+
+  useEffect(() => {
+    if (window.electron && window.electron.onLoadState) {
+      console.log('Setting up onLoadState listener'); // Debug log
+      const removeListener = window.electron.onLoadState((savedState) => {
+        console.log('Loaded state from main process:', savedState); // Debug log
+        setPlayQueue(savedState);
+      });
+
+      // Signal to the main process that the renderer is ready
+      if (window.electron.rendererReady) {
+        console.log('Signaling renderer ready to main process'); // Debug log
+        window.electron.rendererReady();
+      } else {
+        console.error('window.electron.rendererReady is not defined'); // Error log
+      }
+
+      return () => {
+        if (removeListener) removeListener();
+      };
+    } else {
+      console.error('window.electron or window.electron.onLoadState is not defined'); // Error log
+    }
+  }, []);
+
   return (
-    <div>
+    <div style={{ backgroundColor: '#333333', color: '#f5f5f5', fontFamily: 'Ubuntu, sans-serif' }}>
+      <h1>VP3 Player</h1>
       <audio ref={audioRef} controls />
       <button onClick={handleSelectFiles}>Select Files</button>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -66,6 +108,8 @@ const Index = () => {
                   }
                 })()}
               </td>
+              <td style={{ border: '1px solid #ccc', padding: '8px' }}></td>
+              <td style={{ border: '1px solid #ccc', padding: '8px' }}></td>
             </tr>
           ))}
         </tbody>

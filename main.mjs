@@ -1,36 +1,35 @@
 import { app, BrowserWindow, protocol, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { fork } from 'child_process';
 import fs from 'fs';
+import Store from 'electron-store';
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function createWindow() {
-  const preloadPath = path.join(__dirname, 'preload.js');
-  console.log(`Preload script path: ${preloadPath}`); // Debug log
+const store = new Store();
+console.log('Electron Store file path:', store.path);
 
-  const win = new BrowserWindow({
-    width: 800,
-    height: 600,
+let playQueue = store.get('playQueue', []);
+console.log('Retrieved saved state:', playQueue);
+
+function createWindow() {
+  const mainWindow = new BrowserWindow({
     webPreferences: {
-      preload: preloadPath,
-      contextIsolation: true,
-      enableRemoteModule: false,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
-  win.loadURL('http://localhost:3000');
-  win.webContents.openDevTools();
+  // Open the DevTools.
+  mainWindow.webContents.openDevTools();
 
-  win.webContents.on('did-finish-load', () => {
-    console.log('Window finished loading'); // Debug log
-  });
+  mainWindow.loadURL('http://localhost:3000'); // Adjust the URL as needed
 
-  win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error(`Failed to load: ${errorDescription} (code: ${errorCode})`); // Debug log
+  // Wait for the renderer to signal it's ready before sending the state
+  ipcMain.on('renderer-ready', (event) => {
+    console.log('Renderer signaled ready, sending load-state event');
+    event.reply('load-state', playQueue);
   });
 }
 
@@ -55,25 +54,12 @@ app.on('activate', () => {
   }
 });
 
-// Helper function to recursively find media files in a directory
-const findMediaFiles = (dir, extensions) => {
-  let results = [];
-  const list = fs.readdirSync(dir);
-  list.forEach(file => {
-    file = path.resolve(dir, file);
-    const stat = fs.statSync(file);
-    if (stat && stat.isDirectory()) {
-      results = results.concat(findMediaFiles(file, extensions));
-    } else {
-      if (extensions.includes(path.extname(file).toLowerCase())) {
-        results.push(file);
-      }
-    }
-  });
-  return results;
-};
+ipcMain.on('load-state', (event) => {
+  const savedState = store.get('playQueue', []);
+  console.log('Sending load-state event with savedState:', savedState);
+  event.reply('load-state', savedState);
+});
 
-// IPC handlers
 ipcMain.handle('select-files', async () => {
   console.log('select-files event received'); // Debug log
   const result = await dialog.showOpenDialog({
@@ -81,4 +67,21 @@ ipcMain.handle('select-files', async () => {
     filters: [{ name: 'Audio Files', extensions: ['mp3', 'wav', 'flac'] }],
   });
   return result.filePaths;
+});
+
+ipcMain.handle('save-state', (event, newPlayQueue) => {
+  console.log('save-state event received with playQueue:', newPlayQueue); // Debug log
+  if (Array.isArray(newPlayQueue) && newPlayQueue.length > 0) {
+    playQueue = newPlayQueue;
+    store.set('playQueue', playQueue);
+    console.log('State saved successfully'); // Debug log
+  } else {
+    console.warn('Received empty playQueue, not saving state'); // Warning log
+  }
+});
+
+app.on('before-quit', () => {
+  console.log('App is about to quit, saving state'); // Debug log
+  store.set('playQueue', playQueue);
+  console.log('State saved successfully before quit'); // Debug log
 });
