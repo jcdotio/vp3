@@ -87,6 +87,7 @@ const Index = () => {
       <h1>VP3 Player</h1>
       <audio ref={audioRef} controls />
       <button onClick={handleSelectFiles}>Select Files</button>
+      <button onClick={handleSelectFiles}>Clear Queue</button>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
@@ -97,7 +98,15 @@ const Index = () => {
         </thead>
         <tbody>
           {playQueue.map((song, index) => (
-            <tr key={index} onClick={() => handlePlay(song.url)} style={{ cursor: 'pointer', borderBottom: '1px solid #ccc' }}>
+            <tr
+              key={index}
+              onClick={() => handlePlay(song.url)}
+              style={{
+                cursor: 'pointer',
+                borderBottom: '1px solid #ccc',
+                backgroundColor: song.url === currentSong ? '#555555' : 'transparent' // Highlight the current song
+              }}
+            >
               <td style={{ border: '1px solid #ccc', padding: '8px' }}>
                 {(() => {
                   try {
