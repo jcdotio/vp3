@@ -2,29 +2,28 @@
    "name": "vp3",
    "version": "1.0.0",
    "description": "Vp3 Player",
-   "main": "main.js",
+   "type": "module",
+   "main": "main.mjs",
    "scripts": {
-     "dev": "next dev",
-     "build": "next build",
-     "start": "next start",
-     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
-     "electron-build": "next build && electron-builder",
-     "electron": "wait-on http://localhost:3000 && electron ."
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start",
+      "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron --experimental-modules .\"",
+      "electron-build": "next build && electron-builder",
+      "electron": "wait-on http://localhost:3000 && electron --experimental-modules ."
    },
    "dependencies": {
-     "next": "^12.0.0",
-     "react": "^17.0.2",
-     "react-dom": "^17.0.2",
-     "electron": "^13.0.0",
-     "fs-extra": "^10.0.0"
+      "browser-id3-writer": "^6.1.0",
+      "electron": "^31.4.0",
+      "electron-store": "^7.0.2",
+      "fs-extra": "^10.0.0",
+      "jsmediatags": "^3.9.7",
+      "next": "^14.2.5",
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0"
    },
    "devDependencies": {
-     "concurrently": "^6.2.0",
-     "wait-on": "^5.3.0",
-     "electron-builder": "^22.11.7",
-     "electron-is-dev": "^2.0.0",
-     "autoprefixer": "^10.2.6",
-     "postcss": "^8.3.5",
-     "tailwindcss": "^2.2.4"
+      "concurrently": "^6.2.0",
+      "wait-on": "^7.2.0"
    }
- }
+}

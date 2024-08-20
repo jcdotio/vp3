@@ -1,46 +1,59 @@
-import { useState, useRef } from 'react';
+import React from 'react';
+import { ipcRenderer } from 'electron';
 
-export default function Home() {
-  const [playQueue, setPlayQueue] = useState([]);
-  const [currentSong, setCurrentSong] = useState(null);
-  const audioRef = useRef(null);
+const App = () => {
+  const [currentSong, setCurrentSong] = React.useState(null);
+  const audioRef = React.useRef(null);
 
-  const handleFileChange = (event) => {
-    const files = Array.from(event.target.files);
-    const newQueue = files.map(file => ({
-      name: file.name,
-      url: URL.createObjectURL(file)
-    }));
-    setPlayQueue(prevQueue => [...prevQueue, ...newQueue]);
-  };
+  const handleSelectFiles = async () => {
+    console.log('Select files button clicked'); // Debug log
+    const filePaths = await ipcRenderer.invoke('select-files');
+    console.log('Files selected:', filePaths); // Debug log
 
-  const handlePlay = (url) => {
-    setCurrentSong(url);
-    if (audioRef.current) {
-      audioRef.current.load();
-      audioRef.current.play();
+    if (filePaths.length > 0) {
+      handlePlay(filePaths[0]);
+    } else {
+      console.error('No files selected'); // Error log
     }
   };
 
+  const handlePlay = (url) => {
+    const decodedUrl = decodeURIComponent(url);
+    const filePath = `local://${decodedUrl}`;
+    console.log('Playing file:', filePath); // Debug log
+    setCurrentSong(filePath);
+  };
+
+  React.useEffect(() => {
+    if (audioRef.current && currentSong) {
+      console.log('Setting audio src to:', currentSong); // Debug log
+      audioRef.current.src = currentSong;
+      audioRef.current.play().then(() => {
+        console.log('Audio is playing'); // Debug log
+      }).catch(error => {
+        console.error('Error playing audio:', error); // Debug log
+      });
+    }
+  }, [currentSong]);
+
   return (
     <div>
-      <h1>VP3 Player</h1>
-      <input type="file" accept=".mp3" multiple onChange={handleFileChange} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px', marginTop: '20px' }}>
-        {playQueue.map((song, index) => (
-          <div key={index} onClick={() => handlePlay(song.url)} style={{ cursor: 'pointer', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
-            {song.name}
-          </div>
-        ))}
-      </div>
-      {currentSong && (
-        <div>
-          <audio ref={audioRef} controls>
-            <source src={currentSong} type="audio/mpeg" />
-            Your browser does not support the audio element.
-          </audio>
-        </div>
-      )}
+      <button onClick={handleSelectFiles}>Select Files</button>
+      <audio ref={audioRef} controls></audio>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr>
+            <th style={{ border: '1px solid #ccc', padding: '8px' }}>URL</th>
+            <th style={{ border: '1px solid #ccc', padding: '8px' }}>Year</th>
+            <th style={{ border: '1px solid #ccc', padding: '8px' }}>Genre</th>
+          </tr>
+        </thead>
+        <tbody>
+          {/* Add your table rows here */}
+        </tbody>
+      </table>
     </div>
   );
-}
+};
+
+export default App;
