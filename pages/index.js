@@ -157,7 +157,7 @@ const Index = () => {
   return (
     <div style={{ backgroundColor: '#333333', color: '#f5f5f5', fontFamily: 'Ubuntu, sans-serif' }}>
       <h1>
-        <audio ref={audioRef} controls onEnded={playNextSong} /> - VP3 Player --{' '}
+        <audio ref={audioRef} controls onEnded={playNextSong} /> // VP3 Player - --{' '}
       </h1>
       <button onClick={handleSelectFiles}>Select Files</button>
       <button onClick={() => setPlayQueue([])}>Clear Queue</button>
