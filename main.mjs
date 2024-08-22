@@ -1,9 +1,10 @@
-import { app, BrowserWindow, protocol, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, protocol, ipcMain, dialog, TouchBar } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import Store from 'electron-store';
 
+const { TouchBarButton } = TouchBar;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const store = new Store();
@@ -17,6 +18,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
     },
   });
+
   mainWindow.webContents.openDevTools();
   mainWindow.loadURL('http://localhost:3000');
   ipcMain.on('renderer-ready', (event) => {
@@ -73,13 +75,10 @@ ipcMain.handle('save-state', (event, newPlayQueue) => {
     playQueue = newPlayQueue;
     store.set('playQueue', playQueue);
     console.log('State saved successfully');
-  } else {
-    console.warn('Received empty playQueue, not saving state');
   }
 });
-
-app.on('before-quit', () => {
-  console.log('App is about to quit, saving state');
-  store.set('playQueue', playQueue);
-  console.log('State saved successfully before quit');
+  app.on('before-quit', () => {
+    console.log('App is about to quit, saving state');
+    store.set('playQueue', playQueue);
+    console.log('State saved successfully before quit');
 });

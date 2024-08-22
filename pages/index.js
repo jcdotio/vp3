@@ -2,8 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import jsmediatags from 'jsmediatags';
 import { basename } from 'path';
 
-
-
 const Index = () => {
   const [playQueue, setPlayQueue] = useState([]);
   const [currentSong, setCurrentSong] = useState('');
@@ -45,6 +43,10 @@ const Index = () => {
     };
 
     setupAudio();
+    // Set the default volume to 10%
+    if (audioRef.current) {
+      audioRef.current.volume = 0.1;
+    }
 
     // Set up visualizer
     const canvas = canvasRef.current;
@@ -66,7 +68,7 @@ const Index = () => {
       let x = 0;
 
       for (let i = 0; i < bufferLength; i++) {
-        barHeight = dataArray[i];
+        barHeight = dataArray[i] / 2; // Reduce the gain by scaling down the bar height
 
         canvasCtx.fillStyle = 'rgb(' + (barHeight + 100) + ',50,50)';
         canvasCtx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
@@ -124,21 +126,11 @@ const Index = () => {
           };
         } catch (error) {
           console.error('Error reading metadata for file:', filePath, error);
-          // Fallback to using the filename as the title
-          return {
-            url: `local://${filePath}`,
-            lastPlayed: null,
-            title: basename(filePath),
-            artist: 'Unknown Artist',
-            album: 'Unknown Album',
-          };
+          return null;
         }
       }));
-  
-      console.log('New play queue:', newPlayQueue);
-      setPlayQueue((prevQueue) => [...prevQueue, ...newPlayQueue]);
-    } else {
-      console.error('window.electron or window.electron.selectFiles is not defined');
+
+      setPlayQueue(newPlayQueue.filter(song => song !== null));
     }
   };
 
@@ -224,14 +216,12 @@ const Index = () => {
       </h1>
       <button onClick={handlePreviousSong}>Previous</button>
       <button onClick={handleNextSong}>Next</button>
-      <h1>
-      // VP3 Player - --
-      </h1>
       <button onClick={handleSelectFiles}>Select Files</button>
       <button onClick={handleClearQueue}>Clear Queue</button>
 
+
       <canvas ref={canvasRef} width="300" height="50" style={{ display: 'block', margin: '10px auto' }}></canvas>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
         <thead>
           <tr>
             <th style={{ border: '1px solid #ccc', padding: '8px' }}>Title</th>
