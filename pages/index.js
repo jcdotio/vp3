@@ -173,6 +173,20 @@ const Index = () => {
     }
   };
 
+  const handlePreviousSong = () => {
+    const prevIndex = (currentSongIndex - 1 + playQueue.length) % playQueue.length;
+    if (prevIndex !== currentSongIndex) {
+      handlePlay(playQueue[prevIndex].url, prevIndex);
+    }
+  };
+
+  const handleNextSong = () => {
+    const nextIndex = (currentSongIndex + 1) % playQueue.length;
+    if (nextIndex !== currentSongIndex) {
+      handlePlay(playQueue[nextIndex].url, nextIndex);
+    }
+  };
+
   useEffect(() => {
     if (window.electron && window.electron.saveState) {
       console.log('Saving state:', playQueue);
@@ -206,10 +220,16 @@ const Index = () => {
   return (
     <div style={{ backgroundColor: '#333333', color: '#f5f5f5', fontFamily: 'Ubuntu, sans-serif' }}>
       <h1>
-        <audio ref={audioRef} controls onEnded={playNextSong} /> // VP3 Player - --{' '}
+        <audio ref={audioRef} controls onEnded={playNextSong} /> 
+      </h1>
+      <button onClick={handlePreviousSong}>Previous</button>
+      <button onClick={handleNextSong}>Next</button>
+      <h1>
+      // VP3 Player - --
       </h1>
       <button onClick={handleSelectFiles}>Select Files</button>
       <button onClick={handleClearQueue}>Clear Queue</button>
+
       <canvas ref={canvasRef} width="300" height="50" style={{ display: 'block', margin: '10px auto' }}></canvas>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
@@ -217,7 +237,7 @@ const Index = () => {
             <th style={{ border: '1px solid #ccc', padding: '8px' }}>Title</th>
             <th style={{ border: '1px solid #ccc', padding: '8px' }}>Artist</th>
             <th style={{ border: '1px solid #ccc', padding: '8px' }}>Album</th>
-            <th style={{ border: '1px solid #ccc', padding: '8px' }}>URL</th>
+            <th style={{ border: '1px solid #ccc', padding: '8px' }}>File Path</th>
           </tr>
         </thead>
         <tbody>
@@ -234,7 +254,7 @@ const Index = () => {
       <td style={{ border: '1px solid #ccc', padding: '8px' }}>{song.title || 'Unknown Title'}</td>
       <td style={{ border: '1px solid #ccc', padding: '8px' }}>{song.artist || 'Unknown Artist'}</td>
       <td style={{ border: '1px solid #ccc', padding: '8px' }}>{song.album || 'Unknown Album'}</td>
-      <td style={{ border: '1px solid #ccc', padding: '8px' }}>{decodeURIComponent(new URL(song.url).pathname)}</td>
+      <td style={{ border: '1px solid #ccc', padding: '8px' }}>{decodeURIComponent(new URL(song.url).pathname).replace(/^\/+/, '/')}</td>
     </tr>
   ))}
 </tbody>
