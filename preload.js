@@ -29,6 +29,14 @@ contextBridge.exposeInMainWorld('electron', {
       throw error;
     }
   },
+  clearQueue: async () => {
+    try {
+      return await ipcRenderer.invoke('clear-queue');
+    } catch (error) {
+      console.error('Error clearing queue:', error);
+      throw error;
+    }
+  },
 });
 
 console.log('Preload script initialized');

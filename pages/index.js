@@ -1,4 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import jsmediatags from 'jsmediatags';
+import { basename } from 'path';
+
+
 
 const Index = () => {
   const [playQueue, setPlayQueue] = useState([]);
@@ -88,19 +92,64 @@ const Index = () => {
     if (window.electron && window.electron.selectFiles) {
       const filePaths = await window.electron.selectFiles();
       console.log('Selected files:', filePaths);
-      setPlayQueue(prevQueue => [
-        ...prevQueue,
-        ...filePaths.map(filePath => {
-          try {
-            return { url: `local://${filePath}`, lastPlayed: null };
-          } catch (error) {
-            console.error('Invalid file path:', filePath);
-            return null;
+  
+      const newPlayQueue = await Promise.all(filePaths.map(async (filePath) => {
+        try {
+          const supportedExtensions = ['mp3', 'wav', 'flac'];
+          const fileExtension = filePath.split('.').pop().toLowerCase();
+  
+          if (!supportedExtensions.includes(fileExtension)) {
+            throw new Error(`Unsupported file format: ${fileExtension}`);
           }
-        }).filter(Boolean)
-      ]);
+  
+          // Use a timeout to prevent hanging on problematic files
+          const metadata = await Promise.race([
+            new Promise((resolve, reject) => {
+              jsmediatags.read(filePath, {
+                onSuccess: (tag) => resolve(tag),
+                onError: (error) => reject(error),
+              });
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Metadata read timeout')), 5000))
+          ]);
+  
+          console.log('Extracted metadata for file:', filePath, metadata);
+  
+          return {
+            url: `local://${filePath}`,
+            lastPlayed: null,
+            title: metadata.tags.title || basename(filePath),
+            artist: metadata.tags.genre || 'Unknown Artist',
+            album: metadata.tags.album || 'Unknown Album',
+          };
+        } catch (error) {
+          console.error('Error reading metadata for file:', filePath, error);
+          // Fallback to using the filename as the title
+          return {
+            url: `local://${filePath}`,
+            lastPlayed: null,
+            title: basename(filePath),
+            artist: 'Unknown Artist',
+            album: 'Unknown Album',
+          };
+        }
+      }));
+  
+      console.log('New play queue:', newPlayQueue);
+      setPlayQueue((prevQueue) => [...prevQueue, ...newPlayQueue]);
     } else {
       console.error('window.electron or window.electron.selectFiles is not defined');
+    }
+  };
+
+  const handleClearQueue = async () => {
+    console.log('Clear queue button clicked');
+    if (window.electron && window.electron.clearQueue) {
+      await window.electron.clearQueue();
+      setPlayQueue([]); // Clear the play queue in the UI
+      console.log('Play queue cleared');
+    } else {
+      console.error('window.electron or window.electron.clearQueue is not defined');
     }
   };
 
@@ -160,42 +209,35 @@ const Index = () => {
         <audio ref={audioRef} controls onEnded={playNextSong} /> // VP3 Player - --{' '}
       </h1>
       <button onClick={handleSelectFiles}>Select Files</button>
-      <button onClick={() => setPlayQueue([])}>Clear Queue</button>
+      <button onClick={handleClearQueue}>Clear Queue</button>
       <canvas ref={canvasRef} width="300" height="50" style={{ display: 'block', margin: '10px auto' }}></canvas>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
+            <th style={{ border: '1px solid #ccc', padding: '8px' }}>Title</th>
+            <th style={{ border: '1px solid #ccc', padding: '8px' }}>Artist</th>
+            <th style={{ border: '1px solid #ccc', padding: '8px' }}>Album</th>
             <th style={{ border: '1px solid #ccc', padding: '8px' }}>URL</th>
-            <th style={{ border: '1px solid #ccc', padding: '8px' }}>Year</th>
-            <th style={{ border: '1px solid #ccc', padding: '8px' }}>Genre</th>
           </tr>
         </thead>
         <tbody>
-          {playQueue.map((song, index) => (
-            <tr
-              key={index}
-              onClick={() => handlePlay(song.url, index)}
-              style={{
-                cursor: 'pointer',
-                borderBottom: '1px solid #ccc',
-                backgroundColor: song.url === currentSong ? '#555555' : 'transparent'
-              }}
-            >
-              <td style={{ border: '1px solid #ccc', padding: '8px' }}>
-                {(() => {
-                  try {
-                    return decodeURIComponent(new URL(song.url).pathname);
-                  } catch (error) {
-                    console.error('Invalid URL:', song.url);
-                    return 'Invalid URL';
-                  }
-                })()}
-              </td>
-              <td style={{ border: '1px solid #ccc', padding: '8px' }}></td>
-              <td style={{ border: '1px solid #ccc', padding: '8px' }}></td>
-            </tr>
-          ))}
-        </tbody>
+  {playQueue.map((song, index) => (
+    <tr
+      key={index}
+      onClick={() => handlePlay(song.url, index)}
+      style={{
+        cursor: 'pointer',
+        borderBottom: '1px solid #ccc',
+        backgroundColor: song.url === currentSong ? '#555555' : 'transparent'
+      }}
+    >
+      <td style={{ border: '1px solid #ccc', padding: '8px' }}>{song.title || 'Unknown Title'}</td>
+      <td style={{ border: '1px solid #ccc', padding: '8px' }}>{song.artist || 'Unknown Artist'}</td>
+      <td style={{ border: '1px solid #ccc', padding: '8px' }}>{song.album || 'Unknown Album'}</td>
+      <td style={{ border: '1px solid #ccc', padding: '8px' }}>{decodeURIComponent(new URL(song.url).pathname)}</td>
+    </tr>
+  ))}
+</tbody>
       </table>
       <a target="_BLANK" href="https://jc.io">docs</a>
     </div>
